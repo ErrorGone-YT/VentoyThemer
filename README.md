@@ -99,6 +99,7 @@ The application uses PyInstaller to create standalone executables.
     python build.py
     ```
     This will create a `dist/VentoyThemer-[Version]/` folder containing the executable and all required files.
+5.  Move the "VentoyThemer" folder from "_internal" to the root directory where the .exe file is located.
 
 ## Translations
 

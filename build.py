@@ -1,7 +1,7 @@
 import os
 import subprocess
 import sys
-MAIN_SCRIPT = 'VentoyThemer-1.0.1.py'
+MAIN_SCRIPT = 'VentoyThemer-1.0.2.py'
 VERSION_FILE_SOURCE = os.path.join('VentoyThemer','version')
 BASE_NAME = 'VentoyThemer'
 ICON_PATH_SOURCE = os.path.join('VentoyThemer', 'Logo.ico')

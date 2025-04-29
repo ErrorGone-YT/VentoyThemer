@@ -355,7 +355,7 @@ class VentoyThemer:
                          text=self._("ventoy_themer_link_text", "Project Page"),
                          fg="blue", cursor="hand2", font=link_font)
         link3.pack() 
-        link3.bind("<Button-1>", lambda e: webbrowser.open("https://www.ventoy.net/en/index.html"))
+        link3.bind("<Button-1>", lambda e: webbrowser.open("https://github.com/ErrorGone-YT/VentoyThemer"))
         self.translatable_widgets.append((link3, "ventoy_themer_link_text"))
 
     def reset_status(self):

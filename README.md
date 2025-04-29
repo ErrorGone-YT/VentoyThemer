@@ -55,7 +55,7 @@ Note: For .rar archives, you might also need to install the `unrar` command-line
 3.  Install the required libraries (see Requirements section).
 4.  Run the application:
     ```bash
-    python VentoyThemer-1.1.44.py # Or the name of your main script file
+    python VentoyThemer-(version).py # Or the name of your main script file
     ```
 
 ### Using a Ready-Made Executable (EXE)

@@ -1,0 +1,12 @@
+# PyInstaller build folders and spec file
+build/
+dist/
+*.spec
+
+# Python byte-code files
+__pycache__/
+*.pyc
+
+# Operating system generated files
+.DS_Store
+Thumbs.db

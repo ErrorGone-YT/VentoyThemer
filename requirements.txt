@@ -1,0 +1,6 @@
+psutil
+tkinterdnd2
+py7zr
+rarfile
+zstandard
+lz4

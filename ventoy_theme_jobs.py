@@ -4,6 +4,8 @@ import json
 import os
 import queue
 import shutil
+import stat
+import sys
 import threading
 import traceback
 
@@ -12,11 +14,28 @@ from tkinter import messagebox
 
 import ventoy_config as ventoy_cfg
 import ventoy_support as support
+import ventoy_theme_utils as theme_utils
+
+
+def _force_rmtree(path):
+    """shutil.rmtree that clears read-only attributes, which are common in
+    theme files copied from archives (Windows read-only bit, 0444 modes)."""
+    def _clear_readonly(func, p, _exc):
+        try:
+            os.chmod(p, stat.S_IWRITE | stat.S_IREAD)
+        except OSError:
+            pass
+        func(p)
+
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=_clear_readonly)
+    else:
+        shutil.rmtree(path, onerror=_clear_readonly)
 
 
 def _delete_folder(path):
     if os.path.exists(path):
-        shutil.rmtree(path)
+        _force_rmtree(path)
 
 
 def apply_theme_task(app, drive, theme_sources_paths):
@@ -55,7 +74,8 @@ def apply_theme_task(app, drive, theme_sources_paths):
                     print(f"Error while waiting for overwrite confirmation for '{theme_name}': {e}")
                     app.show_message_safe("error", "error_task_title", "error_task_message",
                                            title_key=app._("error_task_title", "Task Error"),
-                                           message_key=app._("error_task_message", "An unexpected error occurred during task: {}\\n{}").format(f"Failed to get confirmation for theme '{theme_name}'. Skipping this theme.", ""),
+                                           message_key=app._("error_task_message", "An unexpected error occurred during task: {}\
+{}").format(f"Failed to get confirmation for theme '{theme_name}'. Skipping this theme.", ""),
                                            args=[])
                     should_process = False
 
@@ -87,7 +107,7 @@ def apply_theme_task(app, drive, theme_sources_paths):
                         rel_path = os.path.relpath(theme_txt, drive).replace("\\", "/")
                         all_paths.add(f"/{rel_path}")
 
-                    all_fonts.update(app.find_pf2_fonts(theme_dir))
+                    all_fonts.update(theme_utils.find_pf2_fonts(theme_dir, drive))
                     app.update_status_safe(0, app._("status_processed", "Processed {}").format(theme_name), 100 * processed_count / total)
 
                 except Exception as e:
@@ -126,7 +146,8 @@ def apply_theme_task(app, drive, theme_sources_paths):
             app.update_status_safe(0, app._("status_task_failed", "Task failed."), 100)
 
     except Exception as e:
-        error_message = app._("error_task_message", "An unexpected error occurred during task: {}\\n{}").format(str(e), traceback.format_exc())
+        error_message = app._("error_task_message", "An unexpected error occurred during task: {}\
+{}").format(str(e), traceback.format_exc())
         print(error_message)
         app.show_message_safe("error", "error_task_title", "", title_key=app._("error_task_title", "Task Error"), message_key="", args=[error_message])
         app.update_status_safe(0, app._("status_apply_theme_task_failed", "Theme application task failed."), 100)
@@ -168,7 +189,7 @@ def start_apply_theme_thread(app):
     app.worker_thread.start()
 
 
-def apply_settings_task(app, drive):
+def apply_settings_task(app, drive, selected_default, resolution, allowed_resolutions, default_combo_values, random_label):
     try:
         json_path = os.path.join(drive, support.VENTOY_JSON_PATH)
         if not os.path.exists(json_path):
@@ -187,27 +208,25 @@ def apply_settings_task(app, drive):
             return
 
         theme_config = ventoy_cfg.ensure_theme_section(config)
-        sel = app.default_theme_var.get()
         theme_paths_in_json = theme_config.get("file", [])
         theme_names_in_json = ventoy_cfg.get_theme_names_from_files(theme_paths_in_json)
-        if sel == app._("option_random_theme", "Random Theme"):
+        if selected_default == random_label:
             theme_config["default_file"] = 0
-        elif sel and sel in theme_names_in_json:
-            ventoy_cfg.update_default_theme(config, sel, theme_paths_in_json, random_label=app._("option_random_theme", "Random Theme"))
+        elif selected_default and selected_default in theme_names_in_json:
+            ventoy_cfg.update_default_theme(config, selected_default, theme_paths_in_json, random_label=random_label)
             if theme_config.get("default_file", 0) == 0:
-                print(app._("print_warning_selected_default_theme_not_found_load", "Selected default theme '{}' not found in ventoy.json. Resetting to Random Theme.").format(sel))
-                app.root.after(0, app.default_theme_var.set, app._("option_random_theme", "Random Theme"))
+                print(app._("print_warning_selected_default_theme_not_found_load", "Selected default theme '{}' not found in ventoy.json. Resetting to Random Theme.").format(selected_default))
+                app.root.after(0, app.default_theme_var.set, random_label)
         else:
-            app.show_message_safe("warning", "warning_select_drive_title", "warning_selected_default_theme_not_found", sel)
-            if app._("option_random_theme", "Random Theme") not in app.default_theme_combo["values"]:
-                current_values = list(app.default_theme_combo["values"])
-                current_values.insert(0, app._("option_random_theme", "Random Theme"))
+            app.show_message_safe("warning", "warning_select_drive_title", "warning_selected_default_theme_not_found", selected_default)
+            if random_label not in default_combo_values:
+                current_values = list(default_combo_values)
+                current_values.insert(0, random_label)
                 app.root.after(0, app.default_theme_combo.config, {"values": current_values})
-            app.root.after(0, app.default_theme_var.set, app._("option_random_theme", "Random Theme"))
+            app.root.after(0, app.default_theme_var.set, random_label)
             theme_config["default_file"] = 0
 
-        resolution = app.resolution_var.get()
-        ventoy_cfg.update_gfxmode(config, resolution, app.resolution_combo["values"])
+        ventoy_cfg.update_gfxmode(config, resolution, allowed_resolutions)
         try:
             ventoy_cfg.save_json_config(json_path, config)
             app.root.after(0, app.load_existing_themes)
@@ -244,8 +263,19 @@ def start_apply_settings_thread(app):
                               message_key=app._("error_drive_letter_message", "Could not determine drive letter."))
         return
 
+    # Snapshot all Tk state here, on the main thread: Tkinter is not
+    # thread-safe (notably on macOS), so the worker must not touch widgets.
+    selected_default = app.default_theme_var.get()
+    resolution = app.resolution_var.get()
+    allowed_resolutions = list(app.resolution_combo["values"])
+    default_combo_values = list(app.default_theme_combo["values"])
+    random_label = app._("option_random_theme", "Random Theme")
+
     app.set_buttons_state(tk.DISABLED)
-    app.worker_thread = threading.Thread(target=apply_settings_task, args=(app, app.current_drive))
+    app.worker_thread = threading.Thread(
+        target=apply_settings_task,
+        args=(app, app.current_drive, selected_default, resolution, allowed_resolutions, default_combo_values, random_label),
+    )
     app.worker_thread.start()
 
 
@@ -261,7 +291,7 @@ def remove_theme_task(app, drive, selected_theme):
         app.update_status_safe(2, f"{prefix_del}{short_name_del}{suffix_del}", 10)
         try:
             if os.path.exists(theme_dir):
-                shutil.rmtree(theme_dir)
+                _force_rmtree(theme_dir)
                 print(app._("print_theme_folder_deleted", "Theme folder deleted: {}").format(theme_dir))
             else:
                 print(app._("print_warning_theme_folder_not_found_skip", "Warning: Theme folder not found, skipping deletion: {}").format(theme_dir))
@@ -270,7 +300,9 @@ def remove_theme_task(app, drive, selected_theme):
         except PermissionError:
             app.show_message_safe("error", "permission_error_title", "error_permission_deleting_folder",
                                   title_key=app._("permission_error_title", "Permission Error"),
-                                  message_key=app._("error_permission_deleting_folder", "Permission denied while deleting folder: {}\\n\\nMake sure the folder is not in use and you have necessary permissions.").format(selected_theme),
+                                  message_key=app._("error_permission_deleting_folder", "Permission denied while deleting folder: {}\
+\
+Make sure the folder is not in use and you have necessary permissions.").format(selected_theme),
                                   args=[])
             app.update_status_safe(2, app._("status_failed_delete_theme_folder", "Failed to delete theme folder."), 40)
             app.show_message_safe("warning", "warning_partial_deletion_title", "warning_partial_deletion_message_permission",
@@ -336,8 +368,12 @@ def remove_theme_task(app, drive, selected_theme):
                     if not ventoy_json_path or not isinstance(ventoy_json_path, str):
                         return False
                     try:
-                        full_path_on_drive = os.path.normpath(os.path.join(drive, ventoy_json_path.lstrip("/")))
-                        return full_path_on_drive.startswith(normalized_theme_dir_on_drive + os.sep) or full_path_on_drive == normalized_theme_dir_on_drive
+                        # Case-insensitive: Linux/macOS filesystems keep the
+                        # exact case from ventoy.json, which may differ from
+                        # the on-disk directory casing.
+                        full_path_on_drive = os.path.normpath(os.path.join(drive, ventoy_json_path.lstrip("/"))).lower()
+                        normalized = normalized_theme_dir_on_drive.lower()
+                        return full_path_on_drive.startswith(normalized + os.sep) or full_path_on_drive == normalized
                     except Exception:
                         return False
 
@@ -377,7 +413,8 @@ def remove_theme_task(app, drive, selected_theme):
     except Exception as e:
         app.show_message_safe("error", "generic_error_title", "error_during_theme_deletion_task",
                               title_key=app._("generic_error_title", "Error"),
-                              message_key=app._("error_during_theme_deletion_task", "Error during theme deletion task: {}\\n{}").format(str(e), traceback.format_exc()),
+                              message_key=app._("error_during_theme_deletion_task", "Error during theme deletion task: {}\
+{}").format(str(e), traceback.format_exc()),
                               args=[])
         app.update_status_safe(2, app._("status_unexpected_error_deletion", "An unexpected error occurred during deletion."), 100)
     finally:
@@ -413,7 +450,7 @@ def remove_all_themes_task(app, drive):
                 short_name = theme if len(theme) <= max_length else theme[:max_length - 3] + "..."
                 app.update_status_safe(2, f"{prefix}{short_name}{suffix}", (idx / total) * 100)
                 try:
-                    shutil.rmtree(theme_path)
+                    _force_rmtree(theme_path)
                     print(app._("print_theme_folder_deleted", "Theme folder deleted: {}").format(theme_path))
                 except FileNotFoundError:
                     print(app._("print_warning_theme_folder_not_found_during_delete", "Warning: Theme folder not found during deletion (already removed?): {}").format(theme_path))
@@ -477,7 +514,9 @@ def start_remove_theme_thread(app):
         return
 
     confirm = messagebox.askyesno(app._("dialog_confirm_delete_theme_title", "Confirm"),
-                                  app._("dialog_confirm_delete_theme_message", "ARE YOU SURE YOU WANT TO DELETE THIS THEME?\\n\\nTHIS PROCESS CANNOT BE UNDONE!"))
+                                  app._("dialog_confirm_delete_theme_message", "ARE YOU SURE YOU WANT TO DELETE THIS THEME?\
+\
+THIS PROCESS CANNOT BE UNDONE!"))
     if not confirm:
         return
 

@@ -52,7 +52,7 @@ def add_footer_links(app):
     footer = tk.Frame(app.root)
     footer.pack(side=tk.BOTTOM, fill=tk.X, pady=4)
 
-    link_font = tkFont.Font(family="Courier New", size=10, underline=True)
+    link_font = tkFont.Font(family=app.default_font[0], size=10, underline=True)
 
     left_frame = tk.Frame(footer)
     center_frame = tk.Frame(footer)

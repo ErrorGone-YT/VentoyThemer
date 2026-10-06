@@ -16,6 +16,7 @@ LANGUAGES_FILE_SOURCE = ROOT_DIR / 'VentoyThemer' / 'languages.json'
 DATA_FILES = [
     (str(ROOT_DIR / 'VentoyThemer' / 'languages.json'), 'VentoyThemer'),
     (str(ROOT_DIR / 'VentoyThemer' / 'Logo.ico'), 'VentoyThemer'),
+    (str(ROOT_DIR / 'VentoyThemer' / 'Logo.png'), 'VentoyThemer'),
     (str(ROOT_DIR / 'VentoyThemer' / 'LICENSE.txt'), 'VentoyThemer'),
     (str(ROOT_DIR / 'VentoyThemer' / 'version'), 'VentoyThemer'),
 ]
@@ -70,6 +71,7 @@ try:
     print(f" - _internal/")
     print(f" - VentoyThemer/")
     print(f"    - Logo.ico")
+    print(f"    - Logo.png")
     print(f"    - languages.json")
     print(f"    - LICENSE.txt")
     print(f"    - version")

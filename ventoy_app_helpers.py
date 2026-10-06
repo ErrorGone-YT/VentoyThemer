@@ -14,7 +14,10 @@ def _get_truncated_name(name, max_length=33, ellipsis="..."):
 
 def show_overwrite_dialog_threaded(app, theme_name, result_queue):
     dialog_title = app._("dialog_confirm_overwrite_title", "Confirm Overwrite")
-    question = app._("dialog_confirm_overwrite_message", "Theme '{theme_name}' already exists.\\nDo you want to overwrite it?\\n\\nAll previous changes will be LOST!").format(theme_name=theme_name)
+    question = app._("dialog_confirm_overwrite_message", "Theme '{theme_name}' already exists.\
+Do you want to overwrite it?\
+\
+All previous changes will be LOST!").format(theme_name=theme_name)
     overwrite_confirm = messagebox.askyesno(dialog_title, question)
     try:
         result_queue.put(overwrite_confirm, block=False)

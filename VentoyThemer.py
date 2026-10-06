@@ -17,6 +17,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import tkinter as tk
+import tkinter.font as tkFont
 from tkinter import ttk
 import os
 import sys
@@ -51,24 +52,30 @@ def list_drives_display():
 def extract_drive_letter(display_string):
     return support.extract_drive_root(display_string)
 
+
+def pick_default_font(root):
+    """Return a fixed-width font tuple available on the current OS."""
+    preferred = ("Courier New", "Consolas", "Menlo", "DejaVu Sans Mono", "Liberation Mono", "Courier")
+    try:
+        families = set(tkFont.families(root))
+    except Exception:
+        families = set()
+    for name in preferred:
+        if name in families:
+            return (name, 10)
+    return ("Courier", 10)
+
+
 class VentoyThemer:
     def __init__(self, root):
         self.root = root
         self.all_translations, self._messages = translation_service.load_translations()
         self.root.geometry("440x385")
         root.resizable(False, False)
-        try:
-            icon_path = support.resource_path("VentoyThemer", "Logo.ico")
+        self._apply_window_icon()
 
-            if os.path.exists(icon_path):
-                self.root.iconbitmap(default=icon_path)
-            else:
-                print(f"Warning: Icon file not found at {icon_path}")
-
-        except Exception as e:
-            print(f"Error setting window icon: {e}")
-            
-        self.default_font = ("Courier New", 10)
+        self.default_font = pick_default_font(root)
+        self._drive_root_map = {}
         self.theme_sources_paths = []
         self.theme_display_names_from_json = []
 
@@ -149,6 +156,32 @@ class VentoyThemer:
                  return default
              return key
 
+    def _apply_window_icon(self):
+        # .ico via iconbitmap is Windows-only; other platforms use
+        # iconphoto with a PNG, which Tk 8.6+ can decode natively.
+        try:
+            if sys.platform.startswith("win"):
+                icon_path = support.resource_path("VentoyThemer", "Logo.ico")
+                if os.path.exists(icon_path):
+                    self.root.iconbitmap(default=icon_path)
+                else:
+                    print(f"Warning: Icon file not found at {icon_path}")
+            else:
+                icon_path = support.resource_path("VentoyThemer", "Logo.png")
+                if os.path.exists(icon_path):
+                    self._icon_image = tk.PhotoImage(file=icon_path)
+                    self.root.iconphoto(True, self._icon_image)
+                else:
+                    print(f"Warning: Icon file not found at {icon_path}")
+        except Exception as e:
+            print(f"Error setting window icon: {e}")
+
+    def extract_drive_letter(self, display_string):
+        root = self._drive_root_map.get(display_string)
+        if root:
+            return root
+        return support.extract_drive_root(display_string)
+
     def _get_truncated_name(self, name, max_length=33, ellipsis="..."):
         return app_helpers._get_truncated_name(name, max_length=max_length, ellipsis=ellipsis)
 
@@ -188,9 +221,9 @@ class VentoyThemer:
 
     def find_pf2_fonts(self, root_dir):
         drive_display = self.drive_var.get()
-        drive = extract_drive_letter(drive_display)
+        drive = self.extract_drive_letter(drive_display)
         if not drive:
-            print(self._("error_extracting_drive_letter", "Error: Could not extract drive letter from '{}'").format(display_string=drive_display))
+            print(self._("error_extracting_drive_letter", "Error: Could not extract drive root from '{}'").format(drive_display))
             return set()
         return theme_utils.find_pf2_fonts(root_dir, drive)
 
@@ -204,9 +237,9 @@ class VentoyThemer:
             self.root.after(0, self.remove_theme_combo.set, "")
             self.resolution_var.set("")
             return
-        self.current_drive = extract_drive_letter(drive_display)
+        self.current_drive = self.extract_drive_letter(drive_display)
         if not self.current_drive:
-            print(self._("error_extracting_drive_letter", "Error: Could not extract drive letter from '{}'").format(display_string=drive_display))
+            print(self._("error_extracting_drive_letter", "Error: Could not extract drive root from '{}'").format(drive_display))
             self.theme_display_names_from_json = []
             self.root.after(0, self.default_theme_combo.config, {'values': []})
             self.root.after(0, self.default_theme_var.set, "")
@@ -235,7 +268,9 @@ class VentoyThemer:
         self.load_existing_themes()
 
     def update_usb_drives(self):
-        values = list_drives_display()
+        drives = support.list_available_drives()
+        values = [drive.display for drive in drives]
+        self._drive_root_map = {drive.display: drive.root for drive in drives}
         current_drive = self.drive_var.get()
 
         for combo in self.drive_combos:

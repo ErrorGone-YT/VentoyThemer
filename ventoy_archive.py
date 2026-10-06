@@ -12,6 +12,19 @@ def _translate(translate, key, default=None):
     return translate(key, default)
 
 
+def _safe_extractall(tar_ref, dest_path):
+    """Extract with the 'data' filter where available (Python 3.12+).
+
+    The filter blocks path traversal and dangerous members; older Python
+    versions fall back to the legacy behaviour.
+    """
+    try:
+        tar_ref.extractall(dest_path, filter="data")
+    except TypeError:
+        # Python < 3.12 has no filter parameter.
+        tar_ref.extractall(dest_path)
+
+
 def extract_theme_archive(archive_path, dest_path, translate=None):
     archive_path_lower = archive_path.lower()
 
@@ -39,7 +52,7 @@ def extract_theme_archive(archive_path, dest_path, translate=None):
         try:
             mode = "r:gz" if archive_path_lower.endswith((".tar.gz", ".tgz")) else "r"
             with tarfile.open(archive_path, mode) as tar_ref:
-                tar_ref.extractall(dest_path)
+                _safe_extractall(tar_ref, dest_path)
             archive_type = ".tar.gz/.tgz" if mode == "r:gz" else ".tar"
             print(_translate(translate, "print_extracted_archive", "Extracted {} archive: {}").format(archive_type, os.path.basename(archive_path)))
         except tarfile.ReadError:
@@ -50,7 +63,7 @@ def extract_theme_archive(archive_path, dest_path, translate=None):
     elif archive_path_lower.endswith(".tar.bz2"):
         try:
             with tarfile.open(archive_path, "r:bz2") as tar_ref:
-                tar_ref.extractall(dest_path)
+                _safe_extractall(tar_ref, dest_path)
             print(_translate(translate, "print_extracted_archive", "Extracted {} archive: {}").format(".tar.bz2", os.path.basename(archive_path)))
         except tarfile.ReadError:
             raise Exception(_translate(translate, "error_tarbz2_read_error", "Failed to extract .tar.bz2 archive '{}': Not a valid BZ2ipped TAR file.").format(os.path.basename(archive_path)))
@@ -73,7 +86,7 @@ def extract_theme_archive(archive_path, dest_path, translate=None):
             print(_translate(translate, "print_decompressed_and_extracting", "Decompressed {}. Attempting to extract temporary tar: {}").format(".xz", os.path.basename(archive_path)))
 
             with tarfile.open(temp_tar_path, "r") as tar_ref:
-                tar_ref.extractall(dest_path)
+                _safe_extractall(tar_ref, dest_path)
             print(_translate(translate, "print_extracted_archive", "Extracted {} archive: {}").format(".xz", os.path.basename(archive_path)))
         except tarfile.ReadError:
             raise Exception(_translate(translate, "error_tarxz_invalid_tar", "Decompressed file from .xz archive '{}' is not a valid tar archive. Please ensure it is a .tar.xz file.").format(os.path.basename(archive_path)))
@@ -102,7 +115,7 @@ def extract_theme_archive(archive_path, dest_path, translate=None):
             print(_translate(translate, "print_decompressed_and_extracting", "Decompressed {}. Attempting to extract temporary tar: {}").format(".lz4", os.path.basename(archive_path)))
 
             with tarfile.open(temp_tar_path, "r") as tar_ref:
-                tar_ref.extractall(dest_path)
+                _safe_extractall(tar_ref, dest_path)
             print(_translate(translate, "print_extracted_archive", "Extracted {} archive: {}").format(".lz4", os.path.basename(archive_path)))
         except tarfile.ReadError:
             raise Exception(_translate(translate, "error_tarlz4_invalid_tar", "Decompressed file from .lz4 archive '{}' is not a valid tar archive. Please ensure it is a .tar.lz4 file.").format(os.path.basename(archive_path)))
@@ -131,7 +144,7 @@ def extract_theme_archive(archive_path, dest_path, translate=None):
             print(_translate(translate, "print_decompressed_and_extracting", "Decompressed {}. Attempting to extract temporary tar: {}").format(".zst", os.path.basename(archive_path)))
 
             with tarfile.open(temp_tar_path, "r") as tar_ref:
-                tar_ref.extractall(dest_path)
+                _safe_extractall(tar_ref, dest_path)
             print(_translate(translate, "print_extracted_archive", "Extracted {} archive: {}").format(".zst", os.path.basename(archive_path)))
         except tarfile.ReadError:
             raise Exception(_translate(translate, "error_tarzst_invalid_tar", "Decompressed file from .zst archive '{}' is not a valid tar archive. Please ensure it is a .tar.zst file.").format(os.path.basename(archive_path)))

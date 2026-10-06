@@ -28,7 +28,7 @@ The application is written in Python using the Tkinter library and the TkinterDn
 ![Application Settings](https://github.com/user-attachments/assets/b528a3e0-e35f-4432-8bae-e9348d418346)
 ## Requirements (for running from source)
 
-* Python 3.6 or higher.
+* Python 3.8 or higher (3.12+ recommended).
 * Required Python libraries:
     * `tkinter` (usually included with Python standard installation)
     * `tkinterdnd2` (optional, only needed for Drag & Drop support)
@@ -37,14 +37,23 @@ The application is written in Python using the Tkinter library and the TkinterDn
     * `rarfile` (for .rar archives, requires the `unrar` utility installed and available in your system's PATH)
     * `zstandard` (for .zst archives)
     * `lz4` (for .lz4 archives)
-    * `pywin32` (optional, for `win32api` and `win32file` modules on Windows)
+    * `pywin32` (**Windows only**, for `win32api` and `win32file` modules)
 
-You can install the required libraries using pip:
+Install the cross-platform dependencies from `requirements.txt`:
 
 ```bash
-pip install tkinterdnd2 psutil py7zr rarfile zstandard lz4 pywin32
-````
+pip install -r requirements.txt
+```
+
+On Windows, additionally install `pywin32` (it cannot be installed on Linux/macOS):
+
+```bash
+pip install pywin32
+```
+
 Note: For .rar archives, you might also need to install the `unrar` command-line utility on your operating system and ensure its directory is added to your system's PATH variable.
+
+Note for Linux: the application runs under both X11 and Wayland (through XWayland). Drag & Drop relies on `tkinterdnd2` and may be unreliable under pure Wayland compositors; the Browse button always works.
 
 ## Installation and Usage
 

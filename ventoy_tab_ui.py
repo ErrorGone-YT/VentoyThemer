@@ -65,7 +65,7 @@ def add_install_tab_widgets(app):
     app.clear_btn_install.pack()
     app.translatable_widgets.append((app.clear_btn_install, "clear_button"))
 
-    app.status_label_install = tk.Label(app.install_tab, textvariable=app.status_bar_install, anchor="w", font=("Courier New", 10))
+    app.status_label_install = tk.Label(app.install_tab, textvariable=app.status_bar_install, anchor="w", font=app.default_font)
     app.status_label_install.place(x=5, y=220, width=425)
 
     app.progress_bar_install = ttk.Progressbar(app.install_tab, mode="determinate", variable=app.progress_value_install)
@@ -121,7 +121,7 @@ def add_settings_tab_widgets(app):
         style="Courier.TCombobox",
     )
     app.resolution_combo["values"] = [
-        "max", "3840x2160", "2560x1440", "1920x1080", "1680x1050", "1600×900",
+        "max", "3840x2160", "2560x1440", "1920x1080", "1680x1050", "1600x900",
         "1440x900", "1280x1024", "1280x960", "1024x768", "800x600",
     ]
     app.resolution_combo.pack(fill="x", padx=0, pady=WIDGET_SPACING)
@@ -150,7 +150,7 @@ def add_remove_tab_widgets(app):
     app.remove_theme_combo = ttk.Combobox(content_frame, state="readonly", style="Courier.TCombobox")
     app.remove_theme_combo.pack(fill="x", padx=0, pady=WIDGET_SPACING)
 
-    app.status_label_remove = tk.Label(app.remove_tab, textvariable=app.status_bar_remove, anchor="w", font=("Courier New", 10))
+    app.status_label_remove = tk.Label(app.remove_tab, textvariable=app.status_bar_remove, anchor="w", font=app.default_font)
     app.status_label_remove.place(x=5, y=220, width=425)
 
     app.progress_bar_remove = ttk.Progressbar(app.remove_tab, mode="determinate", variable=app.progress_value_remove)

@@ -1,14 +1,28 @@
+<div align="center">
+
+<img src="VentoyThemer/Logo.png" width="96" alt="VentoyThemer Logo">
+
 # VentoyThemer
 
-![VentoyThemer Logo](VentoyThemer/Logo.ico)
+**A cross-platform GUI for installing and managing Ventoy USB boot themes**
 
-VERSION: [see `VentoyThemer/version`]
+[![Release](https://img.shields.io/github/v/release/ErrorGone-YT/VentoyThemer?logo=github)](https://github.com/ErrorGone-YT/VentoyThemer/releases)
+[![License](https://img.shields.io/github/license/ErrorGone-YT/VentoyThemer)](LICENSE.txt)
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](#requirements-for-running-from-source)
+[![Languages](https://img.shields.io/badge/interface-58%20languages-green)](#translations)
+
+[Download](https://github.com/ErrorGone-YT/VentoyThemer/releases) · [How to Use](#how-to-use) · [Translations](#translations) · [Donate](https://errorgone-yt.github.io/Donat)
+
+</div>
+
+---
 
 ## About
 
 **VentoyThemer** is a graphical application for Windows, Linux, and macOS designed to simplify the process of installing and managing themes for Ventoy. It allows you to easily add themes from various archive formats (ZIP, TAR.GZ, 7z, RAR, and others) or theme folders, manage theme settings (default theme, resolution), and remove installed themes from your Ventoy drive.
 
-The application is written in Python using the Tkinter library and the TkinterDnD2 extension for Drag & Drop functionality.
+The application is written in Python using the Tkinter library and the TkinterDnD2 extension for Drag & Drop functionality. On Linux and macOS it uses the bundled Sun Valley theme, so the interface stays modern and consistent across platforms with no extra dependencies.
 
 ## Features
 
@@ -19,7 +33,7 @@ The application is written in Python using the Tkinter library and the TkinterDn
 * Removal of individual installed themes.
 * Removal of all installed themes.
 * Automatic updating of `ventoy.json` after theme installation/removal and settings changes.
-* Multilingual interface (translations loaded from `languages.json`).
+* Multilingual interface (58 languages, loaded from `languages.json`) with automatic OS locale detection.
 
 ## Screenshots
 ![Install Themes](https://github.com/user-attachments/assets/e4a32045-2660-422a-86cb-1cb9ce0dbf4b)
@@ -31,7 +45,7 @@ The application is written in Python using the Tkinter library and the TkinterDn
 * Python 3.8 or higher (3.12+ recommended).
 * Required Python libraries:
     * `tkinter` (usually included with Python standard installation)
-    * `tkinterdnd2` (optional, only needed for Drag & Drop support)
+    * `tkinterdnd2` (Drag & Drop support)
     * `psutil`
     * `py7zr` (for .7z archives)
     * `rarfile` (for .rar archives, requires the `unrar` utility installed and available in your system's PATH)
@@ -44,6 +58,8 @@ Install the cross-platform dependencies from `requirements.txt`:
 ```bash
 pip install -r requirements.txt
 ```
+
+The modern Sun Valley UI theme for Linux/macOS is bundled in the `vendor/` folder — no extra installation needed.
 
 On Windows, additionally install `pywin32` (it cannot be installed on Linux/macOS):
 

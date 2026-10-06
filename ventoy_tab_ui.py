@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 
 import ventoy_dnd as dnd
+from ventoy_ui_helpers import bordered_frame
 
 OUTER_PADDING = 10
 SECTION_SPACING = 5
@@ -15,7 +16,7 @@ BUTTON_GROUP_SPACING = 5
 
 def add_install_tab_widgets(app):
     main_frame = ttk.Frame(app.install_tab)
-    main_frame.pack(fill="x", padx=OUTER_PADDING, pady=(SECTION_SPACING, 0))
+    main_frame.pack(fill="both", expand=True, padx=OUTER_PADDING, pady=(SECTION_SPACING, 0))
     if dnd.DND_AVAILABLE and dnd.DND_FILES is not None:
         main_frame.drop_target_register(dnd.DND_FILES)
         main_frame.dnd_bind("<<Drop>>", app.on_drop)
@@ -27,17 +28,26 @@ def add_install_tab_widgets(app):
     content_frame = ttk.Frame(main_frame)
     content_frame.pack(fill="both", expand=True, padx=INNER_PADDING, pady=0)
 
-    list_scroll_frame = ttk.Frame(content_frame)
+    list_scroll_frame = tk.Frame(
+        content_frame, bg=app.ui_bg, highlightthickness=1, highlightbackground=app.border_color,
+    )
     list_scroll_frame.pack(side="left", fill="both", expand=True, padx=0, pady=0)
 
     scrollbar = ttk.Scrollbar(list_scroll_frame, orient=tk.VERTICAL)
     scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    listbox_kwargs = {}
+    if app.modern_theme:
+        listbox_kwargs = dict(
+            bg="#ffffff", fg=app.ui_fg, selectbackground="#cde3f8", selectforeground=app.ui_fg,
+            relief="flat", highlightthickness=0, activestyle="none",
+        )
     app.theme_listbox = tk.Listbox(
         list_scroll_frame,
         height=5,
         selectmode=tk.MULTIPLE,
         width=35,
         yscrollcommand=scrollbar.set,
+        **listbox_kwargs,
     )
     app.theme_listbox.pack(side=tk.LEFT, fill="both", expand=True)
     scrollbar.config(command=app.theme_listbox.yview)
@@ -65,22 +75,28 @@ def add_install_tab_widgets(app):
     app.clear_btn_install.pack()
     app.translatable_widgets.append((app.clear_btn_install, "clear_button"))
 
-    app.status_label_install = tk.Label(app.install_tab, textvariable=app.status_bar_install, anchor="w", font=app.default_font)
-    app.status_label_install.place(x=5, y=220, width=425)
-
-    app.progress_bar_install = ttk.Progressbar(app.install_tab, mode="determinate", variable=app.progress_value_install)
-    app.progress_bar_install.place(x=5, y=250, width=425)
-
     app.apply_btn_install = ttk.Button(
         app.install_tab,
         text=app._("apply_themes_button", "Apply Themes"),
         command=app.start_apply_theme_thread,
-        style="RoundedButton.TButton",
-        width=15,
+        style="Accent.TButton",
         takefocus=False,
     )
-    app.apply_btn_install.place(x=136, y=282)
+    app.apply_btn_install.pack(side="bottom", pady=(WIDGET_SPACING, BUTTON_GROUP_SPACING + 4))
     app.translatable_widgets.append((app.apply_btn_install, "apply_themes_button"))
+
+    progress_container = tk.Frame(app.install_tab, bg=app.ui_bg)
+    progress_container.pack(side="bottom", fill="x", padx=OUTER_PADDING, pady=(0, WIDGET_SPACING))
+
+    app.progress_bar_install = ttk.Progressbar(progress_container, mode="determinate", variable=app.progress_value_install)
+    app.progress_bar_install.pack(fill="x")
+
+    app.status_label_install = tk.Label(
+        app.install_tab, textvariable=app.status_bar_install, anchor="w", font=app.default_font,
+        bg=app.ui_bg, fg=app.ui_fg, padx=6,
+    )
+    app.status_label_install.pack(side="bottom", fill="x", padx=OUTER_PADDING, pady=(0, 2))
+
 
 
 def add_settings_tab_widgets(app):
@@ -96,13 +112,14 @@ def add_settings_tab_widgets(app):
     combo_button_frame = ttk.Frame(default_theme_content_frame)
     combo_button_frame.pack(fill="x", padx=0, pady=0)
 
+    default_theme_container = bordered_frame(app, combo_button_frame, side="left", fill="x", expand=True, pady=WIDGET_SPACING)
     app.default_theme_combo = ttk.Combobox(
-        combo_button_frame,
+        default_theme_container,
         textvariable=app.default_theme_var,
         state="readonly",
         style="Courier.TCombobox",
     )
-    app.default_theme_combo.pack(side="left", fill="x", expand=True, padx=0, pady=WIDGET_SPACING)
+    app.default_theme_combo.pack(side="left", fill="x", expand=True)
     app.default_theme_combo.bind("<<ComboboxSelected>>", app.on_default_theme_selected)
 
     resolution_main_frame = ttk.Frame(app.settings_tab)
@@ -114,8 +131,9 @@ def add_settings_tab_widgets(app):
     resolution_content_frame = ttk.Frame(resolution_main_frame)
     resolution_content_frame.pack(fill="both", expand=True, padx=INNER_PADDING, pady=0)
 
+    resolution_container = bordered_frame(app, resolution_content_frame, fill="x", pady=WIDGET_SPACING)
     app.resolution_combo = ttk.Combobox(
-        resolution_content_frame,
+        resolution_container,
         textvariable=app.resolution_var,
         state="readonly",
         style="Courier.TCombobox",
@@ -124,18 +142,18 @@ def add_settings_tab_widgets(app):
         "max", "3840x2160", "2560x1440", "1920x1080", "1680x1050", "1600x900",
         "1440x900", "1280x1024", "1280x960", "1024x768", "800x600",
     ]
-    app.resolution_combo.pack(fill="x", padx=0, pady=WIDGET_SPACING)
+    app.resolution_combo.pack(fill="x")
 
     app.apply_btn_settings = ttk.Button(
         app.settings_tab,
         text=app._("apply_settings_button", "Apply settings"),
         command=app.start_apply_settings_thread,
-        style="RoundedButton.TButton",
-        width=15,
+        style="Accent.TButton",
         takefocus=False,
     )
-    app.apply_btn_settings.place(x=136, y=282)
+    app.apply_btn_settings.pack(side="bottom", pady=(WIDGET_SPACING, BUTTON_GROUP_SPACING + 4))
     app.translatable_widgets.append((app.apply_btn_settings, "apply_settings_button"))
+
 
 
 def add_remove_tab_widgets(app):
@@ -147,36 +165,45 @@ def add_remove_tab_widgets(app):
 
     content_frame = ttk.Frame(main_frame)
     content_frame.pack(fill="both", expand=True, padx=INNER_PADDING, pady=0)
-    app.remove_theme_combo = ttk.Combobox(content_frame, state="readonly", style="Courier.TCombobox")
-    app.remove_theme_combo.pack(fill="x", padx=0, pady=WIDGET_SPACING)
+    remove_theme_container = bordered_frame(app, content_frame, fill="x", pady=WIDGET_SPACING)
+    app.remove_theme_combo = ttk.Combobox(remove_theme_container, state="readonly", style="Courier.TCombobox")
+    app.remove_theme_combo.pack(fill="x")
 
-    app.status_label_remove = tk.Label(app.remove_tab, textvariable=app.status_bar_remove, anchor="w", font=app.default_font)
-    app.status_label_remove.place(x=5, y=220, width=425)
-
-    app.progress_bar_remove = ttk.Progressbar(app.remove_tab, mode="determinate", variable=app.progress_value_remove)
-    app.progress_bar_remove.place(x=5, y=250, width=425)
-
-    app.remove_btn = ttk.Button(
-        app.remove_tab,
-        text=app._("remove_selected_button", "Remove Selected Theme"),
-        command=app.start_remove_theme_thread,
-        style="RoundedButton.TButton",
-        width=21,
-        takefocus=False,
-    )
-    app.remove_btn.place(x=230, y=282)
-    app.translatable_widgets.append((app.remove_btn, "remove_selected_button"))
+    remove_btn_frame = ttk.Frame(app.remove_tab)
+    remove_btn_frame.pack(side="bottom", pady=(WIDGET_SPACING, BUTTON_GROUP_SPACING + 4))
 
     app.remove_all_btn = ttk.Button(
-        app.remove_tab,
+        remove_btn_frame,
         text=app._("remove_all_button", "Remove ALL THEMES"),
         command=app.start_remove_all_themes_thread,
         style="RoundedButton.TButton",
-        width=21,
         takefocus=False,
     )
-    app.remove_all_btn.place(x=10, y=282)
+    app.remove_all_btn.pack(side="left", padx=(0, WIDGET_SPACING * 2))
     app.translatable_widgets.append((app.remove_all_btn, "remove_all_button"))
+
+    app.remove_btn = ttk.Button(
+        remove_btn_frame,
+        text=app._("remove_selected_button", "Remove Selected Theme"),
+        command=app.start_remove_theme_thread,
+        style="RoundedButton.TButton",
+        takefocus=False,
+    )
+    app.remove_btn.pack(side="left")
+    app.translatable_widgets.append((app.remove_btn, "remove_selected_button"))
+
+    progress_container = tk.Frame(app.remove_tab, bg=app.ui_bg)
+    progress_container.pack(side="bottom", fill="x", padx=OUTER_PADDING, pady=(0, WIDGET_SPACING))
+
+    app.progress_bar_remove = ttk.Progressbar(progress_container, mode="determinate", variable=app.progress_value_remove)
+    app.progress_bar_remove.pack(fill="x")
+
+    app.status_label_remove = tk.Label(
+        app.remove_tab, textvariable=app.status_bar_remove, anchor="w", font=app.default_font,
+        bg=app.ui_bg, fg=app.ui_fg, padx=6,
+    )
+    app.status_label_remove.pack(side="bottom", fill="x", padx=OUTER_PADDING, pady=(0, 2))
+
 
 
 def create_widgets(app):

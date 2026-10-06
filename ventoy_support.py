@@ -190,8 +190,9 @@ def _looks_like_real_mount(part) -> bool:
     device = part.device or ""
     if not mountpoint or not os.path.exists(mountpoint):
         return False
-    # Skip hidden mounts such as /Volumes/.timemachine on macOS.
-    if Path(mountpoint).name.startswith("."):
+    # Skip hidden mounts such as /Volumes/.timemachine on macOS, and
+    # WSL system mounts like /mnt/wslg/distro.
+    if Path(mountpoint).name.startswith(".") or mountpoint.startswith("/mnt/wsl"):
         return False
     if part.fstype and part.fstype.lower() in PSEUDO_FILESYSTEMS:
         return False

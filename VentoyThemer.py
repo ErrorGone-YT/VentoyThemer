@@ -54,8 +54,17 @@ def extract_drive_letter(display_string):
 
 
 def pick_default_font(root):
-    """Return a fixed-width font tuple available on the current OS."""
-    preferred = ("Courier New", "Consolas", "Menlo", "DejaVu Sans Mono", "Liberation Mono", "Courier")
+    """Return a UI font tuple available on the current OS.
+
+    Windows keeps the classic Courier New branding; Linux/macOS use the
+    system sans-serif so the UI does not fall back to a bitmap-style mono.
+    """
+    if sys.platform.startswith("win"):
+        preferred = ("Courier New", "Consolas", "Courier")
+    elif sys.platform == "darwin":
+        preferred = ("Helvetica Neue", "Helvetica", "Menlo", "Arial")
+    else:
+        preferred = ("DejaVu Sans", "Noto Sans", "Liberation Sans", "FreeSans", "DejaVu Sans Mono", "Helvetica")
     try:
         families = set(tkFont.families(root))
     except Exception:
@@ -70,8 +79,12 @@ class VentoyThemer:
     def __init__(self, root):
         self.root = root
         self.all_translations, self._messages = translation_service.load_translations()
-        self.root.geometry("440x385")
-        root.resizable(False, False)
+        detected = translation_service.detect_language(self.all_translations)
+        if detected:
+            self._messages = detected
+        self.root.geometry("440x405" if sys.platform.startswith("win") else "480x405")
+        root.minsize(440, 385)
+        root.resizable(True, True)
         self._apply_window_icon()
 
         self.default_font = pick_default_font(root)
@@ -143,6 +156,7 @@ class VentoyThemer:
         self.status_bar_install.set(self._("status_ready", "Status - READY"))
         self.status_bar_settings.set(self._("status_ready", "Status - READY"))
         self.status_bar_remove.set(self._("status_ready", "Status - READY"))
+        self._fit_window_width()
 
 
     def _(self, key, default=None):
@@ -181,6 +195,28 @@ class VentoyThemer:
         if root:
             return root
         return support.extract_drive_root(display_string)
+
+    def _fit_window_width(self):
+        """Widen the window so the widest translation fits.
+
+        CJK/Armenian/etc. titles are much longer than English ones. After
+        the new texts are applied, Tk's requested width already accounts
+        for the notebook tab row, labels and the active theme — so the
+        window is resized to that (never below 440), preserving the
+        user-chosen height.
+        """
+        try:
+            self.root.update_idletasks()
+            # The notebook's requested width already accounts for the tab
+            # row, labels and active theme, and stays fresh after text
+            # changes (the root window's lags one resize behind).
+            needed = self.notebook.winfo_reqwidth()
+            height = self.root.winfo_height()
+            if height <= 1:
+                height = 405
+            self.root.geometry(f"{max(440, needed)}x{height}")
+        except Exception as e:
+            print(f"Warning: could not fit window width: {e}")
 
     def _get_truncated_name(self, name, max_length=33, ellipsis="..."):
         return app_helpers._get_truncated_name(name, max_length=max_length, ellipsis=ellipsis)

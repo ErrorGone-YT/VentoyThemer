@@ -19,6 +19,7 @@ DATA_FILES = [
     (str(ROOT_DIR / 'VentoyThemer' / 'Logo.png'), 'VentoyThemer'),
     (str(ROOT_DIR / 'VentoyThemer' / 'LICENSE.txt'), 'VentoyThemer'),
     (str(ROOT_DIR / 'VentoyThemer' / 'version'), 'VentoyThemer'),
+    (str(ROOT_DIR / 'vendor' / 'sv_ttk'), 'vendor/sv_ttk'),
 ]
 app_version = version_service.load_version(default="")
 if not app_version:

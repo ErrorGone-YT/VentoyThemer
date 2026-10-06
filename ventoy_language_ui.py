@@ -3,6 +3,8 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
+from ventoy_ui_helpers import bordered_frame
+
 OUTER_PADDING = 10
 SECTION_SPACING = 5
 TITLE_SPACING = 5
@@ -24,18 +26,19 @@ def add_language_tab_widgets(app):
     language_names = [lang.get("name", f"Unnamed Language {i+1}") for i, lang in enumerate(app.all_translations) if isinstance(lang, dict)]
     language_names.sort()
 
+    language_container = bordered_frame(app, content_frame, fill="x", pady=WIDGET_SPACING)
     app.language_combo = ttk.Combobox(
-        content_frame,
+        language_container,
         textvariable=app.language_var,
         values=language_names,
         state="readonly",
         style="Courier.TCombobox",
     )
-    app.language_combo.pack(fill="x", padx=0, pady=WIDGET_SPACING)
+    app.language_combo.pack(fill="x")
     app.language_combo.bind("<<ComboboxSelected>>", app.on_language_selected)
 
     version_frame = ttk.Frame(app.language_tab)
-    version_frame.place(relx=1.0, y=315, x=-10, anchor="e")
+    version_frame.place(relx=1.0, rely=1.0, x=-10, y=-6, anchor="se")
 
     format_string = app._("app_version_label", "Version: {}")
     try:
@@ -44,7 +47,10 @@ def add_language_tab_widgets(app):
         print(f"Error formatting version text: {e}")
         version_text = f"Formatting Error: {e}"
 
-    app.app_version_label = ttk.Label(version_frame, text=version_text, style="Courier.TLabel")
+    app.app_version_label = tk.Label(
+        version_frame, text=version_text, font=app.default_font,
+        bg=app.ui_bg, fg=app.ui_fg, padx=6, pady=2,
+    )
     app.app_version_label.pack(padx=0, pady=0, anchor="w")
     app.translatable_widgets.append((app.app_version_label, "app_version_label"))
 

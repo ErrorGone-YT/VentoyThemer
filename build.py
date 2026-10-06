@@ -35,6 +35,7 @@ command = [
     sys.executable, '-m', 'PyInstaller',
     '--onedir',
     '--windowed',
+    '--noconfirm',
     f'--name={executable_name}',
 ]
 if ICON_PATH_SOURCE.exists():

@@ -98,6 +98,18 @@ def get_drive_label(drive: str) -> str:
             return win32api.GetVolumeInformation(drive)[0] or ""
         except Exception:
             return ""
+    if sys.platform.startswith("win"):
+        # No pywin32: read the label through the plain Win32 call instead.
+        try:
+            import ctypes
+
+            buffer = ctypes.create_unicode_buffer(261)
+            if ctypes.windll.kernel32.GetVolumeInformationW(
+                ctypes.c_wchar_p(drive), buffer, 261, None, None, None, None, 0
+            ):
+                return buffer.value
+        except Exception:
+            pass
     return Path(drive.rstrip("\\/")).name
 
 

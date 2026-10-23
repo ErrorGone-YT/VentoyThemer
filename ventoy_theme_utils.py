@@ -1,6 +1,25 @@
 from __future__ import annotations
 
 import os
+import shutil
+import stat
+import sys
+
+
+def force_rmtree(path):
+    """shutil.rmtree that clears read-only attributes, which are common in
+    theme files copied from archives (Windows read-only bit, 0444 modes)."""
+    def _clear_readonly(func, p, _exc):
+        try:
+            os.chmod(p, stat.S_IWRITE | stat.S_IREAD)
+        except OSError:
+            pass
+        func(p)
+
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=_clear_readonly)
+    else:
+        shutil.rmtree(path, onerror=_clear_readonly)
 
 
 def find_theme_txt(root_dir):
@@ -8,8 +27,11 @@ def find_theme_txt(root_dir):
         return None
 
     for root, dirs, files in os.walk(root_dir):
-        if "theme.txt" in files:
-            return os.path.join(root, "theme.txt")
+        for name in files:
+            # Themes ship "Theme.txt" / "THEME.TXT" as often as the exact
+            # lowercase name, and the comparison must survive both.
+            if name.lower() == "theme.txt":
+                return os.path.join(root, name)
     return None
 
 

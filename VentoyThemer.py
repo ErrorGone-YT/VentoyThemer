@@ -108,6 +108,18 @@ class VentoyThemer:
 
         self.status_bar_remove = tk.StringVar()
         self.progress_value_remove = tk.DoubleVar(value=0)
+
+        self.status_bar_menuicons = tk.StringVar()
+        self.progress_value_menuicons = tk.DoubleVar(value=0)
+        self.menuclass_files = []
+        self.menuclass_base = {}
+        self.menuclass_overrides = {}
+        self.menuclass_rules = []
+        self.menuclass_mode = "absent"
+        self.menuclass_available = []
+        self.menuclass_icons_dir = None
+        self.menuclass_icon_cache = {}
+
         self.worker_thread = None
         self.current_drive = ""
         self.drive_combos = []
@@ -138,7 +150,9 @@ class VentoyThemer:
         if len(current_tabs) > 2:
             self.notebook.tab(current_tabs[2], text=self._("remove_tab_title", "Remove Themes"))
         if len(current_tabs) > 3:
-             self.notebook.tab(current_tabs[3], text=self._("language_tab_title", "Language"))
+            self.notebook.tab(current_tabs[3], text=self._("menuclass_tab_title", "Menu Icons"))
+        if len(current_tabs) > 4:
+             self.notebook.tab(current_tabs[4], text=self._("language_tab_title", "Language"))
 
         for widget, key in self.translatable_widgets:
             if widget and widget.winfo_exists():
@@ -156,6 +170,7 @@ class VentoyThemer:
         self.status_bar_install.set(self._("status_ready", "Status - READY"))
         self.status_bar_settings.set(self._("status_ready", "Status - READY"))
         self.status_bar_remove.set(self._("status_ready", "Status - READY"))
+        self.status_bar_menuicons.set(self._("status_ready", "Status - READY"))
         self._fit_window_width()
 
 
@@ -197,26 +212,25 @@ class VentoyThemer:
         return support.extract_drive_root(display_string)
 
     def _fit_window_width(self):
-        """Widen the window so the widest translation fits.
+        """Resize the window so the active tab's content fits.
 
-        CJK/Armenian/etc. titles are much longer than English ones. After
-        the new texts are applied, Tk's requested width already accounts
-        for the notebook tab row, labels and the active theme — so the
-        window is resized to that (never below 440), preserving the
-        user-chosen height.
+        CJK/Armenian/etc. titles are much longer than English ones, and
+        tabs differ in height (the Menu Icons list needs more room than
+        the settings tab). After the texts are applied, Tk's requested
+        size already accounts for the notebook tab row, labels and the
+        active theme — so the window is resized to that (width never
+        below 440, height never below 405).
         """
         try:
             self.root.update_idletasks()
-            # The notebook's requested width already accounts for the tab
+            # The notebook's requested size already accounts for the tab
             # row, labels and active theme, and stays fresh after text
             # changes (the root window's lags one resize behind).
-            needed = self.notebook.winfo_reqwidth()
-            height = self.root.winfo_height()
-            if height <= 1:
-                height = 405
-            self.root.geometry(f"{max(440, needed)}x{height}")
+            needed_w = self.notebook.winfo_reqwidth()
+            needed_h = self.notebook.winfo_reqheight()
+            self.root.geometry(f"{max(440, needed_w)}x{max(405, needed_h)}")
         except Exception as e:
-            print(f"Warning: could not fit window width: {e}")
+            print(f"Warning: could not fit window size: {e}")
 
     def _get_truncated_name(self, name, max_length=33, ellipsis="..."):
         return app_helpers._get_truncated_name(name, max_length=max_length, ellipsis=ellipsis)
@@ -302,6 +316,7 @@ class VentoyThemer:
     def on_drive_selected(self, event=None):
         self.reset_status()
         self.load_existing_themes()
+        self.start_scan_menu_class_thread()
 
     def update_usb_drives(self):
         drives = support.list_available_drives()
@@ -338,6 +353,27 @@ class VentoyThemer:
 
     def add_remove_tab_widgets(self):
         return tab_ui.add_remove_tab_widgets(self)
+
+    def add_menuicons_tab_widgets(self):
+        return tab_ui.add_menuicons_tab_widgets(self)
+
+    def menuclass_on_scan_finished(self, files, base_classes, mode, rules, available_classes, icons_dir):
+        return input_handlers.menuclass_on_scan_finished(self, files, base_classes, mode, rules, available_classes, icons_dir)
+
+    def menuclass_set_class(self):
+        return input_handlers.menuclass_set_class(self)
+
+    def menuclass_clear_class(self):
+        return input_handlers.menuclass_clear_class(self)
+
+    def menuclass_suggest(self):
+        return input_handlers.menuclass_suggest(self)
+
+    def start_scan_menu_class_thread(self):
+        return theme_jobs.start_scan_menu_class_thread(self)
+
+    def start_apply_menu_class_thread(self):
+        return theme_jobs.start_apply_menu_class_thread(self)
 
     def add_language_tab_widgets(self):
         return language_ui.add_language_tab_widgets(self)

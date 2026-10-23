@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import os
+import tkinter as tk
 from tkinter import filedialog, messagebox
+
+import ventoy_menu_class as menu_class_service
 
 
 SUPPORTED_ARCHIVE_EXTENSIONS = (
@@ -146,3 +149,128 @@ def on_drop(app, event):
         app.update_status_safe(0, app._("status_added_dropped_items_total", "Added {} item(s).").format(total_processed_count), 0)
     elif total_processed_count == 0 and paths:
         app.update_status_safe(0, app._("status_no_supported_dropped_items", "No supported items found in dropped items."), 0)
+
+
+def menuclass_on_scan_finished(app, files, base_classes, mode, rules, available_classes, icons_dir):
+    """Main-thread callback: scan_menu_class_task finished successfully."""
+    app.menuclass_files = files
+    app.menuclass_base = base_classes
+    app.menuclass_mode = mode
+    app.menuclass_rules = rules
+    app.menuclass_available = available_classes
+    if getattr(app, "menuclass_icons_dir", None) != icons_dir:
+        app.menuclass_icon_cache = {}
+    app.menuclass_icons_dir = icons_dir
+    app.menuclass_overrides = {}
+    if getattr(app, "menuclass_class_entry", None) is not None and app.menuclass_class_entry.winfo_exists():
+        app.menuclass_class_entry["values"] = tuple(available_classes)
+    menuclass_refresh_list(app)
+
+
+def menuclass_display_class(app, path):
+    override = app.menuclass_overrides.get(path)
+    if override is None:
+        return app.menuclass_base.get(path, menu_class_service.built_in_class(path))
+    if override == "":
+        return menu_class_service.built_in_class(path)
+    return override
+
+
+def menuclass_icon_for(app, cls):
+    """PhotoImage of the theme icon for this class, or None.
+
+    Images are cached per class and kept referenced on the app, or Tk
+    garbage-collects them and rows render blank.
+    """
+    cache = getattr(app, "menuclass_icon_cache", None)
+    icons_dir = getattr(app, "menuclass_icons_dir", None)
+    if cache is None or not icons_dir or cls in cache:
+        return cache.get(cls) if cache else None
+    image = None
+    try:
+        full = os.path.join(icons_dir, cls + ".png")
+        if os.path.isfile(full):
+            photo = tk.PhotoImage(file=full)
+            shrink_x = max(1, -(-photo.width() // 32))
+            shrink_y = max(1, -(-photo.height() // 32))
+            if shrink_x > 1 or shrink_y > 1:
+                photo = photo.subsample(shrink_x, shrink_y)
+            image = photo
+    except Exception as e:
+        print(f"Could not load icon for class '{cls}': {e}")
+        image = None
+    cache[cls] = image
+    return image
+
+
+def menuclass_refresh_list(app):
+    tree = getattr(app, "menuclass_tree", None)
+    if not tree or not tree.winfo_exists():
+        return
+    tree.delete(*tree.get_children())
+    for path in app.menuclass_files:
+        cls = menuclass_display_class(app, path)
+        opts = {"text": f"{path}  ->  {cls}"}
+        image = menuclass_icon_for(app, cls)
+        if image is not None:
+            opts["image"] = image
+        tree.insert("", "end", iid=path, **opts)
+
+
+def menuclass_selected_paths(app):
+    tree = getattr(app, "menuclass_tree", None)
+    if not tree or not tree.winfo_exists():
+        return []
+    return list(tree.selection())
+
+
+def menuclass_set_class(app):
+    selected = menuclass_selected_paths(app)
+    class_value = app.menuclass_class_var.get().strip()
+    if not selected or not class_value:
+        app.show_message_safe("warning", "generic_warning_title", "menuclass_warning_no_selection")
+        return
+    for path in selected:
+        app.menuclass_overrides[path] = class_value
+    menuclass_refresh_list(app)
+
+
+def menuclass_clear_class(app):
+    selected = menuclass_selected_paths(app)
+    if not selected:
+        app.show_message_safe("warning", "generic_warning_title", "menuclass_warning_no_selection")
+        return
+    for path in selected:
+        app.menuclass_overrides[path] = ""
+    menuclass_refresh_list(app)
+
+
+def menuclass_suggest(app):
+    available = getattr(app, "menuclass_available", [])
+    suggested = 0
+    for path in app.menuclass_files:
+        if path in app.menuclass_overrides:
+            continue
+        guess = menu_class_service.suggest_class(path)
+        # Only suggest classes the active theme can actually draw.
+        if guess and (not available or guess in available):
+            app.menuclass_overrides[path] = guess
+            suggested += 1
+    if suggested:
+        app.update_status_safe(3, app._("menuclass_status_suggested", "Auto-suggested {} class(es).").format(suggested), 0)
+    else:
+        app.update_status_safe(3, app._("menuclass_status_ready", "Status - READY"), 0)
+    menuclass_refresh_list(app)
+
+
+def menuclass_snapshot(app):
+    """Snapshot UI state for the apply worker, or None with a warning shown."""
+    if not app.menuclass_files:
+        app.show_message_safe("warning", "warning_select_drive_title", "menuclass_warning_no_files")
+        return None
+    overrides = {path: value for path, value in app.menuclass_overrides.items() if path in app.menuclass_files}
+    return {
+        "files": list(app.menuclass_files),
+        "overrides": overrides,
+        "rules": list(app.menuclass_rules),
+    }

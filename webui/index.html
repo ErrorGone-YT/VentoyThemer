@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VentoyThemer</title>
+<link rel="stylesheet" href="app.css?v=30">
+</head>
+<body>
+<header id="topbar">
+  <div class="brand">
+    <img src="logo.png" alt="" onerror="this.remove()">
+    <span class="brand-name">VentoyThemer</span>
+  </div>
+  <label class="drive-box">
+    <span data-i18n="device_label">Device with Ventoy</span>
+    <select id="driveSelect"></select>
+  </label>
+  <select id="langSelect" class="lang-select" title="Language"></select>
+</header>
+
+<main id="layout">
+  <!-- LEFT: themes -->
+  <section class="card" id="themesCard">
+    <h2 data-i18n="installed_themes_label">Installed themes</h2>
+    <ul id="themeList" class="theme-list compact"></ul>
+    <label class="row">
+      <span data-i18n="select_default_theme_label">Select Default Theme</span>
+      <select id="defaultThemeSelect"></select>
+    </label>
+    <label class="row">
+      <span data-i18n="choose_resolution_label">Choose Standard Resolution</span>
+      <select id="gfxmodeSelect"></select>
+    </label>
+    <h2 data-i18n="new_themes_label">New themes</h2>
+    <ul id="sourcesList" class="sources-list"></ul>
+    <div class="add-box">
+      <button id="browseBtn" data-i18n="browse_button">Browse</button>
+      <button id="clearSourcesBtn" data-i18n="clear_button">Clear</button>
+      <button id="makeDefaultBtn" class="primary" data-i18n="install_button">Install</button>
+    </div>
+  </section>
+
+  <!-- CENTER: live preview + backgrounds -->
+  <div class="center-col">
+  <section class="card" id="previewCard">
+    <div id="previewStage">
+      <div id="previewBox">
+        <div id="previewBg"></div>
+        <div id="previewMenuBox"></div>
+        <div id="previewEntries"></div>
+        <div id="previewLabel"></div>
+      </div>
+      <div id="previewEmpty" data-i18n="warning_theme_txt_not_found_title">Warning</div>
+      <button id="fullscreenBtn" title="Preview fullscreen">&#x26F6;</button>
+    </div>
+  </section>
+  <section class="card" id="wallpaperCard">
+    <label class="row">
+      <span data-i18n="wallpaper_label">Background</span>
+      <select id="wallpaperSelect"></select>
+    </label>
+    <div class="add-box">
+      <button id="addWallpaperBtn" data-i18n="wallpaper_add">Add</button>
+      <button id="removeWallpaperBtn" class="danger" data-i18n="wallpaper_remove">Remove</button>
+    </div>
+  </section>
+  </div>
+
+  <!-- RIGHT: menu classes -->
+  <section class="card" id="iconsCard">
+    <h2 data-i18n="menuclass_tab_title">Menu Icons</h2>
+    <label class="row">
+      <span data-i18n="icon_source_label">Icon source</span>
+      <select id="iconSourceSelect"></select>
+    </label>
+    <div class="add-box">
+      <button id="addIconPackBtn" data-i18n="icon_packs_add">Add icon folder</button>
+    </div>
+    <p class="hint" data-i18n="menuclass_files_label">Image files on the drive</p>
+    <ul id="fileList" class="file-list"></ul>
+    <div class="icon-actions">
+      <button id="rescanBtn" data-i18n="menuclass_rescan_button">Rescan</button>
+      <button id="suggestBtn" data-i18n="menuclass_suggest_button">Auto-Suggest</button>
+      <input id="classInput" list="classList" placeholder="">
+      <datalist id="classList"></datalist>
+      <button id="setClassBtn" data-i18n="menuclass_set_button">Set Class</button>
+      <button id="clearClassBtn" data-i18n="menuclass_clear_button">Clear Class</button>
+    </div>
+    <button id="applyClassesBtn" class="primary wide" data-i18n="menuclass_apply_button">Apply Menu Classes</button>
+  </section>
+</main>
+
+<div id="statusBar">
+  <span id="statusPill" data-i18n="status_ready">Status - READY</span>
+  <div id="statusProgress"><div id="progressBar"></div></div>
+</div>
+
+<footer id="footer">
+  <a href="#" data-link="https://errorgone-yt.github.io/Donat" data-i18n="donate_link_text">Donate</a>
+  <a href="#" data-link="https://www.gnome-look.org/browse?cat=109&ord=latest" data-i18n="download_themes_link_text">Download New Theme</a>
+  <a href="#" data-link="https://github.com/ErrorGone-YT/VentoyThemer" data-i18n="ventoy_themer_link_text">Project Page</a>
+</footer>
+
+<div id="modalOverlay" hidden>
+  <div class="modal">
+    <p id="modalText"></p>
+    <label id="modalCheckRow" class="modal-check" hidden>
+      <input type="checkbox" id="modalCheckbox">
+      <span id="modalCheckText"></span>
+    </label>
+    <div id="modalButtons" class="modal-buttons"></div>
+  </div>
+</div>
+<div id="toasts"></div>
+
+<script src="app.js?v=30"></script>
+</body>
+</html>

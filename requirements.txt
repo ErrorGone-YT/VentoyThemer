@@ -4,3 +4,4 @@ py7zr
 rarfile
 zstandard
 lz4
+pywebview

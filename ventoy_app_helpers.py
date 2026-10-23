@@ -43,6 +43,9 @@ def reset_status(app):
     elif selected_tab == 2:
         app.status_bar_remove.set(status_text)
         app.progress_value_remove.set(0)
+    elif selected_tab == 3:
+        app.status_bar_menuicons.set(status_text)
+        app.progress_value_menuicons.set(0)
 
 
 def update_status_safe(app, tab_index, message, progress=None):
@@ -59,6 +62,10 @@ def update_status_safe(app, tab_index, message, progress=None):
             app.status_bar_remove.set(message)
             if progress is not None:
                 app.progress_value_remove.set(progress)
+        elif tab_index == 3:
+            app.status_bar_menuicons.set(message)
+            if progress is not None:
+                app.progress_value_menuicons.set(progress)
 
         app.root.update_idletasks()
 
@@ -104,6 +111,11 @@ def set_buttons_state(app, state):
                 btn.config(state=state)
 
         for btn in [app.remove_btn, app.remove_all_btn]:
+            if btn and btn.winfo_exists():
+                btn.config(state=state)
+
+        for btn in [app.apply_btn_menuclass, app.menuclass_rescan_btn,
+                    app.menuclass_suggest_btn, app.menuclass_set_btn, app.menuclass_clear_btn]:
             if btn and btn.winfo_exists():
                 btn.config(state=state)
 

@@ -20,20 +20,44 @@
 
 ## About
 
-**VentoyThemer** is a graphical application for Windows, Linux, and macOS designed to simplify the process of installing and managing themes for Ventoy. It allows you to easily add themes from various archive formats (ZIP, TAR.GZ, 7z, RAR, and others) or theme folders, manage theme settings (default theme, resolution), and remove installed themes from your Ventoy drive.
+**VentoyThemer** is a graphical application for Windows, Linux, and macOS designed to simplify the process of installing and managing themes for Ventoy. It allows you to easily add themes from various archive formats (ZIP, TAR.GZ, 7z, RAR, and others) or theme folders, manage theme settings (default theme, resolution), assign boot-menu icons to your ISO files, and remove installed themes from your Ventoy drive.
 
-The application is written in Python using the Tkinter library and the TkinterDnD2 extension for Drag & Drop functionality. On Linux and macOS it uses the bundled Sun Valley theme, so the interface stays modern and consistent across platforms with no extra dependencies.
+Version 1.1.0 introduces a redesigned **web-based interface** (HTML/CSS/JS in a native window via pywebview) that looks and behaves identically on every operating system, with a **live theme preview**: pick a theme and instantly see its background, menu geometry, colors and per-file boot icons rendered before you apply anything.
+
+The app is written in Python; the interface is HTML/CSS/JS rendered by the OS-native web engine (WebView2 on Windows, WebKitGTK on Linux, WKWebView on macOS). The classic Tkinter interface remains available as a fallback via `python VentoyThemer.py`.
 
 ## Features
+
+### Themes
 
 * Automatic detection of connected Ventoy drives.
 * Installation of themes from various archive formats (.zip, .tar.gz, .7z, .rar, etc.) or directly from a theme folder (containing `theme.txt`).
 * Support for Drag & Drop of theme archives or folders.
 * GUI-based configuration of the default theme and screen resolution.
-* Removal of individual installed themes.
-* Removal of all installed themes.
+* Removal of individual installed themes or all installed themes at once.
 * Automatic updating of `ventoy.json` after theme installation/removal and settings changes.
-* Multilingual interface (58 languages, loaded from `languages.json`) with automatic OS locale detection.
+
+### Live theme preview
+
+* Selecting an installed theme instantly renders its real `theme.txt` look: background image, menu geometry, colors and fonts — before you apply anything.
+* The preview lists the actual ISO/WIM/VHD files on the drive with their boot icons and reflects every change as you edit.
+
+### Boot-menu icons
+
+* Assign an icon to each ISO/WIM file individually, or let Auto-Suggest fill everything in one click (Windows, Ubuntu, Arch, Debian and ~30 more distributions recognized by filename).
+* Pick the icon source: any installed theme, or your own folder of icons — copied to the drive as a reusable icon pack.
+* Icons are applied per theme with automatic backup and exact restore of each theme's original icons.
+* Overwrite protection when installing a theme that already exists: overwrite, skip or install as a copy.
+
+### Custom backgrounds
+
+* Replace a theme's background with your own image: drag it into the window or pick it from disk — it is copied to `ventoy/wallpapers/` on the drive.
+* Switch between the theme's original background and your wallpapers at any time; removing a wallpaper restores the original automatically.
+
+### General
+
+* Single-window interface (HTML/CSS/JS in a native OS window) that looks identical on Windows, Linux and macOS.
+* Multilingual interface (58 languages, loaded from `languages.json`) with automatic OS locale detection and instant switching.
 
 ## Screenshots
 ![Install Themes](https://github.com/user-attachments/assets/e4a32045-2660-422a-86cb-1cb9ce0dbf4b)
@@ -43,29 +67,14 @@ The application is written in Python using the Tkinter library and the TkinterDn
 ## Requirements (for running from source)
 
 * Python 3.8 or higher (3.12+ recommended).
-* Required Python libraries:
-    * `tkinter` (usually included with Python standard installation)
-    * `tkinterdnd2` (Drag & Drop support)
+* Required Python libraries (installed with `pip install -r requirements.txt`):
+    * `pywebview` — renders the interface (WebView2 on Windows is bundled with the OS; on Linux install `libwebkit2gtk-4.1-0` and `gir1.2-webkit2-4.1` via apt; on macOS WKWebView is built-in)
+    * `tkinter` + `tkinterdnd2` (only for the classic Tkinter fallback UI)
     * `psutil`
     * `py7zr` (for .7z archives)
     * `rarfile` (for .rar archives, requires the `unrar` utility installed and available in your system's PATH)
     * `zstandard` (for .zst archives)
     * `lz4` (for .lz4 archives)
-    * `pywin32` (**Windows only**, for `win32api` and `win32file` modules)
-
-Install the cross-platform dependencies from `requirements.txt`:
-
-```bash
-pip install -r requirements.txt
-```
-
-The modern Sun Valley UI theme for Linux/macOS is bundled in the `vendor/` folder — no extra installation needed.
-
-On Windows, additionally install `pywin32` (it cannot be installed on Linux/macOS):
-
-```bash
-pip install pywin32
-```
 
 Note: For .rar archives, you might also need to install the `unrar` command-line utility on your operating system and ensure its directory is added to your system's PATH variable.
 
@@ -80,9 +89,9 @@ Note for Linux: the application runs under both X11 and Wayland (through XWaylan
 3.  Install the required libraries (see Requirements section).
 4.  Run the application:
     ```bash
-    python VentoyThemer.py
+    python main_web.py
     ```
-    If you prefer, `python main.py` also works as a thin launcher.
+    The classic Tkinter interface is still available via `python VentoyThemer.py` if you prefer it.
 
 ### Using a Ready-Made Executable
 
@@ -92,23 +101,22 @@ Go to the project's [Releases page](https://github.com/ErrorGone-YT/VentoyThemer
 
 1.  Connect your Ventoy USB drive to your computer.
 2.  Select the Ventoy drive from the "Device" dropdown list. The application will automatically load any existing themes and settings from `ventoy.json`.
-3.  **To Install Themes:**
-    * Go to the "Install Themes" tab.
-    * Click the "Browse" button and select one or more theme archives (.zip, .tar.gz, .7z, .rar, etc.) or theme folders (containing `theme.txt`).
-    * Alternatively, simply Drag & Drop the theme archives or folders directly into the listbox area.
-    * Selected items will appear in the list.
-    * Click the "Apply Themes" button. The application will extract/copy the themes to the Ventoy drive and update the `ventoy.json` configuration.
-4.  **To Configure Themes:**
-    * Go to the "Themes Settings" tab.
-    * Select the desired default theme from the "Select Default Theme" dropdown list.
-    * Choose the standard resolution from the "Choose Standard Resolution" dropdown list.
-    * Click the "Apply settings" button. The application will update the settings in `ventoy.json`.
-5.  **To Remove Themes:**
-    * Go to the "Remove Themes" tab.
-    * Select the theme you want to delete from the "Choose Theme to Delete" dropdown list.
-    * Click the "Remove Selected Theme" button.
-    * To delete **all** installed themes, click the "Remove ALL THEMES" button.
-    * Confirm the action in the dialog window.
+3.  **To Install a Theme:**
+    * Click **Browse** and select one or more theme archives (.zip, .tar.gz, .7z, .rar, etc.) or theme folders, or simply drag & drop them into the window.
+    * Click **Install**. The application extracts the themes to the drive and updates `ventoy.json`.
+    * If a theme already exists, you will be asked to overwrite it, skip it, or install it as a copy.
+4.  **To Preview and Configure:**
+    * Click a theme in the **Installed themes** list — the live preview instantly shows its background, menu colors and boot entries with icons.
+    * Use the **Default theme** and **Resolution** dropdowns to configure the boot menu; changes are applied immediately.
+5.  **To Customize Boot Icons:**
+    * Open the **Menu icons** panel. Every image file on the drive is listed with its current boot icon.
+    * Pick an **Icon source** (any installed theme, or your own icon folder), then click **Auto-Suggest** to assign icons by filename — or assign them manually and click **Apply Menu Classes**.
+    * The preview updates as you edit.
+6.  **To Use Your Own Background:**
+    * Drag an image into the window or use **Add** — it is copied to `ventoy/wallpapers/` on the drive.
+    * Select it in the **Background** dropdown to replace the theme's background; select **Theme background** to restore the original.
+7.  **To Remove a Theme:**
+    * Click the **✕** button next to the theme in the **Installed themes** list and confirm.
 
 ## Building from Source (for Developers)
 

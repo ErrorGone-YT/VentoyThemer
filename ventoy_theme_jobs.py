@@ -4,8 +4,6 @@ import json
 import os
 import queue
 import shutil
-import stat
-import sys
 import threading
 import traceback
 
@@ -13,24 +11,12 @@ import tkinter as tk
 from tkinter import messagebox
 
 import ventoy_config as ventoy_cfg
+import ventoy_icons as icons_service
+import ventoy_input_handlers as input_handlers
+import ventoy_menu_class as menu_class_service
 import ventoy_support as support
 import ventoy_theme_utils as theme_utils
-
-
-def _force_rmtree(path):
-    """shutil.rmtree that clears read-only attributes, which are common in
-    theme files copied from archives (Windows read-only bit, 0444 modes)."""
-    def _clear_readonly(func, p, _exc):
-        try:
-            os.chmod(p, stat.S_IWRITE | stat.S_IREAD)
-        except OSError:
-            pass
-        func(p)
-
-    if sys.version_info >= (3, 12):
-        shutil.rmtree(path, onexc=_clear_readonly)
-    else:
-        shutil.rmtree(path, onerror=_clear_readonly)
+from ventoy_theme_utils import force_rmtree as _force_rmtree
 
 
 def _delete_folder(path):
@@ -108,6 +94,17 @@ def apply_theme_task(app, drive, theme_sources_paths):
                         all_paths.add(f"/{rel_path}")
 
                     all_fonts.update(theme_utils.find_pf2_fonts(theme_dir, drive))
+
+                    icon_info = icons_service.prepare_theme_icons(theme_dir, theme_txt)
+                    if icon_info["icons"]:
+                        icon_progress = 100 * (i / total)
+                        if icon_info["no_boot_menu"]:
+                            app.update_status_safe(0, app._("status_icons_no_boot_menu", "Icons found, but theme.txt has no boot_menu block."), icon_progress)
+                        elif icon_info["changed"]:
+                            app.update_status_safe(0, app._("status_icons_enabled", "Icons enabled in theme.txt: {} file(s).").format(icon_info["icons"]), icon_progress)
+                        else:
+                            app.update_status_safe(0, app._("status_icons_ready", "Icons: {} file(s) ready.").format(icon_info["icons"]), icon_progress)
+
                     app.update_status_safe(0, app._("status_processed", "Processed {}").format(theme_name), 100 * processed_count / total)
 
                 except Exception as e:
@@ -571,4 +568,141 @@ def start_remove_all_themes_thread(app):
     app.reset_status()
     app.set_buttons_state(tk.DISABLED)
     app.worker_thread = threading.Thread(target=remove_all_themes_task, args=(app, app.current_drive))
+    app.worker_thread.start()
+
+
+def scan_menu_class_task(app, drive):
+    try:
+        json_path = os.path.join(drive, support.VENTOY_JSON_PATH)
+        config = {}
+        if os.path.exists(json_path):
+            try:
+                config = ventoy_cfg.load_json_config(json_path)
+            except Exception as e:
+                print(f"Failed to read ventoy.json: {e}")
+                app.show_message_safe("error", "error_json_read_title", "error_json_read_remove_message",
+                                      title_key=app._("error_json_read_title", "JSON Error"),
+                                      message_key=app._("error_json_read_remove_message", "Failed to read ventoy.json on {drive}. File might be corrupted. Cannot update config.").format(drive=drive),
+                                      args=[])
+                return
+        mode, rules = menu_class_service.read_menu_class(config)
+        files = menu_class_service.scan_image_files(drive)
+        base = {path: menu_class_service.effective_class(path, rules) for path in files}
+
+        # Classes the active theme can actually draw, for the class
+        # dropdown: the default theme's icons, or the union of all
+        # registered themes when the default is "Random".
+        theme_files = config.get("theme", {}).get("file", []) or []
+        default_index = config.get("theme", {}).get("default_file", 0)
+        if isinstance(default_index, int) and 1 <= default_index <= len(theme_files):
+            theme_candidates = [theme_files[default_index - 1]]
+        else:
+            theme_candidates = theme_files
+        available = set()
+        icons_dir = None
+        for theme_rel in theme_candidates:
+            if not isinstance(theme_rel, str) or not theme_rel:
+                continue
+            theme_txt = os.path.join(drive, theme_rel.lstrip("/"))
+            classes = icons_service.list_icon_classes(theme_txt)
+            if classes:
+                available.update(classes)
+            if icons_dir is None:
+                icons_dir = icons_service.find_icons_dir(theme_txt)
+
+        app.root.after(0, app.menuclass_on_scan_finished, files, base, mode, rules, sorted(available), icons_dir)
+        app.update_status_safe(3, app._("menuclass_status_scanned", "Found {} image file(s).").format(len(files)), 100)
+    except Exception as e:
+        print(f"Menu class scan failed: {e}")
+        app.update_status_safe(3, app._("status_task_failed", "Task failed."), 100)
+    finally:
+        app.set_buttons_state(tk.NORMAL)
+        app.root.after(500, lambda: app.update_status_safe(3, app._("status_ready", "Status - READY"), 0))
+
+
+def start_scan_menu_class_thread(app):
+    if app.worker_thread and app.worker_thread.is_alive():
+        return
+
+    drive_display = app.drive_var.get()
+    if not drive_display:
+        # Silent: this also auto-runs at startup and on drive change.
+        app.update_status_safe(3, app._("status_ready", "Status - READY"), 0)
+        return
+
+    drive = app.extract_drive_letter(drive_display)
+    if not drive:
+        return
+
+    app.worker_thread = threading.Thread(target=scan_menu_class_task, args=(app, drive))
+    app.worker_thread.start()
+
+
+def apply_menu_class_task(app, drive, files, overrides, existing_rules):
+    try:
+        json_path = os.path.join(drive, support.VENTOY_JSON_PATH)
+        try:
+            config = ventoy_cfg.load_json_config(json_path) if os.path.exists(json_path) else {}
+        except Exception as e:
+            app.show_message_safe("error", "error_json_read_title", "error_json_read_remove_message",
+                                  title_key=app._("error_json_read_title", "JSON Error"),
+                                  message_key=app._("error_json_read_remove_message", "Failed to read ventoy.json on {drive}. File might be corrupted. Cannot update config.").format(drive=drive),
+                                  args=[])
+            return
+
+        mode, _ = menu_class_service.read_menu_class(config)
+        if mode == "multi":
+            app.show_message_safe("warning", "generic_warning_title", "menuclass_status_multimode")
+            return
+
+        final_rules = menu_class_service.merge_rules(existing_rules, overrides, files)
+        menu_class_service.write_menu_class(config, final_rules)
+        ventoy_cfg.save_json_config(json_path, config)
+        app.update_status_safe(3, app._("menuclass_status_applied", "menu_class saved: {} rule(s).").format(len(final_rules)), 100)
+        print(f"Saved menu_class with {len(final_rules)} rule(s).")
+    except PermissionError:
+        app.show_message_safe("error", "permission_error_title", "error_permission_write_json_settings_message",
+                              title_key=app._("permission_error_title", "Permission Error"),
+                              message_key=app._("error_permission_write_json_settings_message", "Permission denied while writing to ventoy.json on {drive}. Make sure you have write access.").format(drive=drive),
+                              args=[])
+        app.update_status_safe(3, app._("status_task_failed", "Task failed."), 100)
+    except Exception as e:
+        print(f"Menu class apply failed: {e}")
+        app.update_status_safe(3, app._("status_task_failed", "Task failed."), 100)
+    finally:
+        app.set_buttons_state(tk.NORMAL)
+        app.root.after(500, lambda: app.update_status_safe(3, app._("status_ready", "Status - READY"), 0))
+
+
+def start_apply_menu_class_thread(app):
+    if app.worker_thread and app.worker_thread.is_alive():
+        app.show_message_safe("warning", "warning_busy_title", "warning_busy_message",
+                              title_key=app._("warning_busy_title", "Busy"),
+                              message_key=app._("warning_busy_message", "Another operation is already in progress."))
+        return
+
+    drive_display = app.drive_var.get()
+    if not drive_display:
+        app.show_message_safe("warning", "warning_select_drive_title", "warning_select_drive_message",
+                              title_key=app._("warning_select_drive_title", "Warning"),
+                              message_key=app._("warning_select_drive_message", "Please select a drive first."))
+        return
+
+    drive = app.extract_drive_letter(drive_display)
+    if not drive:
+        app.show_message_safe("error", "error_drive_letter_title", "error_drive_letter_message",
+                              title_key=app._("error_drive_letter_title", "Error"),
+                              message_key=app._("error_drive_letter_message", "Could not determine drive letter."))
+        return
+
+    snapshot = input_handlers.menuclass_snapshot(app)
+    if snapshot is None:
+        return
+
+    app.reset_status()
+    app.set_buttons_state(tk.DISABLED)
+    app.worker_thread = threading.Thread(
+        target=apply_menu_class_task,
+        args=(app, drive, snapshot["files"], snapshot["overrides"], snapshot["rules"]),
+    )
     app.worker_thread.start()

@@ -208,10 +208,17 @@ def add_footer_links(app):
     app.translatable_widgets.append((link3, "ventoy_themer_link_text"))
 
 
-def bordered_frame(app, parent, **pack_kwargs):
-    """A 1px-bordered container for input elements (combos, lists, bars)."""
+def bordered_frame(app, parent, grid_row=None, grid_col=0, **pack_kwargs):
+    """A 1px-bordered container for input elements (combos, lists, bars).
+
+    Placed with pack via pack_kwargs, or with grid when grid_row is given
+    (for parents managed by grid, where the two managers cannot mix).
+    """
     frame = tk.Frame(parent, bg=app.ui_bg, highlightthickness=1, highlightbackground=app.border_color)
-    frame.pack(**pack_kwargs)
+    if grid_row is not None:
+        frame.grid(row=grid_row, column=grid_col, sticky="ew", **pack_kwargs)
+    else:
+        frame.pack(**pack_kwargs)
     return frame
 
 

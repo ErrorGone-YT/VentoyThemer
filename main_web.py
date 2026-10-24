@@ -9,6 +9,13 @@ from __future__ import annotations
 import os
 import sys
 
+if sys.platform.startswith("linux"):
+    # WebKitGTK renders a black window with GPU compositing on many
+    # drivers (WSLg, NVIDIA, older Mesa); software rendering is reliable
+    # everywhere. Users can override by setting the vars themselves.
+    os.environ.setdefault("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
+    os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+
 import webview
 
 # PyInstaller: data files live in the bundle dir (sys._MEIPASS);

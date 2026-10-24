@@ -60,10 +60,7 @@ The app is written in Python; the interface is HTML/CSS/JS rendered by the OS-na
 * Multilingual interface (58 languages, loaded from `languages.json`) with automatic OS locale detection and instant switching.
 
 ## Screenshots
-![Install Themes](https://github.com/user-attachments/assets/e4a32045-2660-422a-86cb-1cb9ce0dbf4b)
-![Themes Settings](https://github.com/user-attachments/assets/d4b7cc4b-7faa-483c-a805-ba08844eed6e)
-![Remove Themes](https://github.com/user-attachments/assets/a96fe211-425f-48d8-a4fb-e1e54fbf1c5e)
-![Application Settings](https://github.com/user-attachments/assets/b528a3e0-e35f-4432-8bae-e9348d418346)
+<img width="1266" height="753" alt="Снимок экрана 2026-10-24 095744" src="https://github.com/user-attachments/assets/9c10a05c-4d99-48f5-ab32-6a57294cdd90" />
 ## Requirements (for running from source)
 
 * Python 3.8 or higher (3.12+ recommended).
